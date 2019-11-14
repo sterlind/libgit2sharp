@@ -1,15 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace LibGit2Sharp.Tests
 {
     public class InMemoryRepoFixture
     {
+        private readonly ITestOutputHelper output;
+
+        public InMemoryRepoFixture(ITestOutputHelper output)
+        {
+            this.output = output;
+        }
+
         [Fact]
         public void Basic()
         {
@@ -33,6 +43,14 @@ namespace LibGit2Sharp.Tests
                     tree,
                     repo.Commits,
                     false);
+
+                repo.Refs.Add("HEAD", commit.Id);
+
+                output.WriteLine("Refs:");
+                foreach (var reference in repo.Refs)
+                {
+                    output.WriteLine(reference.CanonicalName);
+                }
             }
         }
 
@@ -59,7 +77,15 @@ namespace LibGit2Sharp.Tests
 
             public override IEnumerable<ReferenceData> Iterate(string glob)
             {
-                throw new NotImplementedException();
+                if (string.IsNullOrEmpty(glob))
+                {
+                    return refs.Values;
+                }
+                else
+                {
+                    var globRegex = new Regex("^" + Regex.Escape(glob).Replace(@"\*", ".*").Replace(@"\?", ".") + "$");
+                    return refs.Values.Where(r => globRegex.IsMatch(r.RefName));
+                }
             }
 
             public override bool Lookup(string refName, out ReferenceData data)
