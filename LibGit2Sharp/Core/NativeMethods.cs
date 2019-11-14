@@ -1094,6 +1094,12 @@ namespace LibGit2Sharp.Core
         internal static extern unsafe int git_odb_write(out GitOid id, git_odb* odb, byte* data, UIntPtr len, GitObjectType type);
 
         [DllImport(libgit2, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern unsafe void git_repository_set_odb(git_repository* repo, IntPtr odb);
+
+        [DllImport(libgit2, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern unsafe int git_odb_new(out git_odb* odb);
+
+        [DllImport(libgit2, CallingConvention = CallingConvention.Cdecl)]
         internal static extern unsafe git_oid* git_object_id(git_object* obj);
 
         [DllImport(libgit2, CallingConvention = CallingConvention.Cdecl)]

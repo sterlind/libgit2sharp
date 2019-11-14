@@ -125,7 +125,7 @@ namespace LibGit2Sharp
                                                                                             configurationGlobalFilePath,
                                                                                             configurationXDGFilePath,
                                                                                             configurationSystemFilePath)));
-                odb = new Lazy<ObjectDatabase>(() => new ObjectDatabase(this));
+                odb = new Lazy<ObjectDatabase>(() => new ObjectDatabase(this, false));
                 diff = new Diff(this);
                 notes = new NoteCollection(this);
                 ignore = new Ignore(this);
@@ -222,7 +222,7 @@ namespace LibGit2Sharp
                                                                                             configurationGlobalFilePath,
                                                                                             configurationXDGFilePath,
                                                                                             configurationSystemFilePath)));
-                odb = new Lazy<ObjectDatabase>(() => new ObjectDatabase(this));
+                odb = new Lazy<ObjectDatabase>(() => new ObjectDatabase(this, path == null));
                 diff = new Diff(this);
                 notes = new NoteCollection(this);
                 ignore = new Ignore(this);
