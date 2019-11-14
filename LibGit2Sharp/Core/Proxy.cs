@@ -1621,6 +1621,18 @@ namespace LibGit2Sharp.Core
             return id;
         }
 
+        public static unsafe void git_repository_set_odb(RepositoryHandle repo, IntPtr gitOdbBackendPointer)
+        {
+            NativeMethods.git_repository_set_odb(repo, gitOdbBackendPointer);
+        }
+
+        public static unsafe ObjectDatabaseHandle git_odb_new()
+        {
+            git_odb* handle;
+            Ensure.ZeroResult(NativeMethods.git_odb_new(out handle));
+            return new ObjectDatabaseHandle(handle, true);
+        }
+
 #endregion
 
 #region git_patch_
