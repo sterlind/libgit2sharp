@@ -197,6 +197,19 @@ namespace LibGit2Sharp
         }
 
         /// <summary>
+        /// Reads the raw, uncompressed data (minus its metadata) from the object database.
+        /// </summary>
+        /// <param name="objectId">Object ID to read.</param>
+        /// <returns>Raw data in bytes.</returns>
+        public virtual byte[] Read(ObjectId objectId)
+        {
+            using (var objHandle = Proxy.git_odb_read(handle, objectId))
+            {
+                return Proxy.git_odb_object_data(objHandle);
+            }
+        }
+
+        /// <summary>
         /// Writes an object to the object database.
         /// </summary>
         /// <param name="stream">The contents of the object</param>

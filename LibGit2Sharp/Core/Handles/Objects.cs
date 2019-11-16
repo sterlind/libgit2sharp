@@ -441,6 +441,27 @@ namespace LibGit2Sharp.Core.Handles
         }
     }
 
+    internal unsafe class OdbObjectHandle : Libgit2Object
+    {
+        public OdbObjectHandle(void* handle, bool owned) : base(handle, owned)
+        {
+        }
+
+        public OdbObjectHandle(IntPtr ptr, bool owned) : base(ptr, owned)
+        {
+        }
+
+        public override void Free()
+        {
+            NativeMethods.git_odb_object_free((git_odb_object*)ptr);
+        }
+
+        public static implicit operator git_odb_object*(OdbObjectHandle handle)
+        {
+            return (git_odb_object*)handle.Handle;
+        }
+    }
+
     internal unsafe class ReferenceDatabaseHandle : Libgit2Object
     {
         public ReferenceDatabaseHandle(void* handle, bool owned) : base(handle, owned)

@@ -22,6 +22,7 @@ namespace LibGit2Sharp.Core
     internal struct git_submodule {}
     internal struct git_annotated_commit {}
     internal struct git_odb {}
+    internal struct git_odb_object {}
     internal struct git_revwalk {}
     internal struct git_remote {}
     internal struct git_object {}

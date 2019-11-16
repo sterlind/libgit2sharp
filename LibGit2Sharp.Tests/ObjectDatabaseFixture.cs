@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -758,6 +759,53 @@ namespace LibGit2Sharp.Tests
                 var result = repo.ObjectDatabase.CanMergeWithoutConflict(master, branch);
 
                 Assert.False(result);
+            }
+        }
+
+        [Fact]
+        public void TestReadBytesFromObjectDatabase()
+        {
+            var scd = BuildSelfCleaningDirectory();
+            var sourcePath = SandboxBareTestRepo();
+            var targetPath = Repository.Init(scd.DirectoryPath, true);
+            using (var targetRepo = new Repository(targetPath))
+            {
+                using (var sourceRepo = new Repository(sourcePath))
+                {
+                    // Clone source repo into target repo, object by object:
+                    foreach (var gitObj in sourceRepo.ObjectDatabase)
+                    {
+                        var meta = sourceRepo.ObjectDatabase.RetrieveObjectMetadata(gitObj.Id);
+                        var data = sourceRepo.ObjectDatabase.Read(gitObj.Id);
+                        switch (meta.Type)
+                        {
+                            case ObjectType.Blob:
+                                targetRepo.ObjectDatabase.Write<Blob>(data);
+                                break;
+                            case ObjectType.Commit:
+                                targetRepo.ObjectDatabase.Write<Commit>(data);
+                                break;
+                            case ObjectType.Tree:
+                                targetRepo.ObjectDatabase.Write<Tree>(data);
+                                break;
+                            case ObjectType.Tag:
+                                targetRepo.ObjectDatabase.Write<TagAnnotation>(data);
+                                break;
+                            default:
+                                throw new ArgumentOutOfRangeException(meta.Type.ToString());
+                        }
+                    }
+
+                    foreach (var gitObj in sourceRepo.ObjectDatabase)
+                    {
+                        Assert.Equal(gitObj, targetRepo.Lookup(gitObj.Id));
+                        var sourceMeta = sourceRepo.ObjectDatabase.RetrieveObjectMetadata(gitObj.Id);
+                        var targetMeta = targetRepo.ObjectDatabase.RetrieveObjectMetadata(gitObj.Id);
+                        Assert.Equal(sourceMeta.Size, targetMeta.Size);
+                        Assert.Equal(sourceMeta.Type, targetMeta.Type);
+                        Assert.Equal(sourceRepo.ObjectDatabase.Read(gitObj.Id), targetRepo.ObjectDatabase.Read(gitObj.Id));
+                    }
+                }
             }
         }
 

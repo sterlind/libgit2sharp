@@ -1100,6 +1100,18 @@ namespace LibGit2Sharp.Core
         internal static extern unsafe int git_odb_new(out git_odb* odb);
 
         [DllImport(libgit2, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern unsafe int git_odb_read(out git_odb_object* obj, git_odb* db, ref GitOid id);
+
+        [DllImport(libgit2, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern unsafe IntPtr git_odb_object_data(git_odb_object* obj);
+
+        [DllImport(libgit2, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern unsafe UIntPtr git_odb_object_size(git_odb_object* obj);
+
+        [DllImport(libgit2, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern unsafe void git_odb_object_free(git_odb_object* obj);
+
+        [DllImport(libgit2, CallingConvention = CallingConvention.Cdecl)]
         internal static extern unsafe git_oid* git_object_id(git_object* obj);
 
         [DllImport(libgit2, CallingConvention = CallingConvention.Cdecl)]

@@ -1633,6 +1633,22 @@ namespace LibGit2Sharp.Core
             return new ObjectDatabaseHandle(handle, true);
         }
 
+        public static unsafe OdbObjectHandle git_odb_read(ObjectDatabaseHandle odb, ObjectId oid)
+        {
+            var id = oid.Oid;
+            git_odb_object* handle;
+            Ensure.ZeroResult(NativeMethods.git_odb_read(out handle, odb, ref id));
+            return new OdbObjectHandle(handle, true);
+        }
+
+        public static unsafe byte[] git_odb_object_data(OdbObjectHandle obj)
+        {
+            var size = NativeMethods.git_odb_object_size(obj);
+            var buffer = new byte[size.ConvertToInt()];
+            Marshal.Copy(NativeMethods.git_odb_object_data(obj), buffer, 0, buffer.Length);
+            return buffer;
+        }
+
 #endregion
 
 #region git_patch_
