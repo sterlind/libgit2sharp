@@ -1649,6 +1649,13 @@ namespace LibGit2Sharp.Core
             return buffer;
         }
 
+        public static unsafe IntPtr git_odb_backend_one_pack(string path)
+        {
+            IntPtr backend;
+            Ensure.ZeroResult(NativeMethods.git_odb_backend_one_pack(out backend, path));
+            return backend;
+        }
+
 #endregion
 
 #region git_patch_
@@ -2710,6 +2717,13 @@ namespace LibGit2Sharp.Core
         {
             int res = NativeMethods.git_repository_set_head(repo, refname);
             Ensure.ZeroResult(res);
+        }
+
+        public static unsafe RepositoryHandle git_repository_wrap_odb(ObjectDatabaseHandle handle)
+        {
+            git_repository* repo;
+            Ensure.ZeroResult(NativeMethods.git_repository_wrap_odb(out repo, handle));
+            return new RepositoryHandle(repo, true);
         }
 
 #endregion

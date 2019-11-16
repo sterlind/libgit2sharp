@@ -1056,6 +1056,11 @@ namespace LibGit2Sharp.Core
         internal static extern IntPtr git_odb_backend_malloc(IntPtr backend, UIntPtr len);
 
         [DllImport(libgit2, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern unsafe int git_odb_backend_one_pack(
+            out IntPtr backend,
+            [MarshalAs(UnmanagedType.CustomMarshaler, MarshalCookie = UniqueId.UniqueIdentifier, MarshalTypeRef = typeof(StrictUtf8Marshaler))] string indexPath);
+
+        [DllImport(libgit2, CallingConvention = CallingConvention.Cdecl)]
         internal static extern unsafe int git_odb_exists(git_odb* odb, ref GitOid id);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -1095,6 +1100,9 @@ namespace LibGit2Sharp.Core
 
         [DllImport(libgit2, CallingConvention = CallingConvention.Cdecl)]
         internal static extern unsafe void git_repository_set_odb(git_repository* repo, IntPtr odb);
+
+        [DllImport(libgit2, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern unsafe int git_repository_wrap_odb(out git_repository* repo, git_odb* odb);
 
         [DllImport(libgit2, CallingConvention = CallingConvention.Cdecl)]
         internal static extern unsafe int git_odb_new(out git_odb* odb);

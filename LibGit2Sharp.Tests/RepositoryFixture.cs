@@ -777,5 +777,19 @@ namespace LibGit2Sharp.Tests
                 });
             }
         }
+
+        [Fact]
+        public void CanInitializeRepositoryFromPackFile()
+        {
+            var sandboxRepo = SandboxStandardTestRepoGitDir();
+            var packIndexPath = Path.Combine(sandboxRepo, ".git", "objects", "pack", "pack-a81e489679b7d3418f9ab594bda8ceb37dd4c695.idx");
+            using (var repo = Repository.OpenFromPackFile(packIndexPath))
+            {
+                var objectIds = repo.ObjectDatabase.Select(obj => obj.Id).ToArray();
+                Assert.NotEmpty(objectIds);
+                var someObj = repo.Lookup<Commit>("b3039beea6d0637e131b24e8b6d61005cc1f6515");
+                Assert.StartsWith("Cleanup", someObj.Message);
+            }
+        }
     }
 }

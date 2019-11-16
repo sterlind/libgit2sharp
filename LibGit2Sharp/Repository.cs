@@ -93,6 +93,53 @@ namespace LibGit2Sharp
         {
         }
 
+        internal Repository(RepositoryHandle handle)
+        {
+            try
+            {
+                this.handle = handle;
+                RegisterForCleanup(handle);
+                isBare = Proxy.git_repository_is_bare(handle);
+
+                Func<Index> indexBuilder = () => new Index(this);
+
+                string configurationGlobalFilePath = null;
+                string configurationXDGFilePath = null;
+                string configurationSystemFilePath = null;
+
+                if (!isBare)
+                {
+                    index = new Lazy<Index>(() => indexBuilder());
+                }
+
+                commits = new CommitLog(this);
+                refs = new ReferenceCollection(this);
+                branches = new BranchCollection(this);
+                tags = new TagCollection(this);
+                stashes = new StashCollection(this);
+                info = new Lazy<RepositoryInformation>(() => new RepositoryInformation(this, isBare));
+                config = new Lazy<Configuration>(() => RegisterForCleanup(new Configuration(this,
+                                                                                            null,
+                                                                                            configurationGlobalFilePath,
+                                                                                            configurationXDGFilePath,
+                                                                                            configurationSystemFilePath)));
+                odb = new Lazy<ObjectDatabase>(() => new ObjectDatabase(this, false));
+                diff = new Diff(this);
+                notes = new NoteCollection(this);
+                ignore = new Ignore(this);
+                network = new Lazy<Network>(() => new Network(this));
+                rebaseOperation = new Lazy<Rebase>(() => new Rebase(this));
+                pathCase = new Lazy<PathCase>(() => new PathCase(this));
+                submodules = new SubmoduleCollection(this);
+                worktrees = new WorktreeCollection(this);
+            }
+            catch
+            {
+                CleanupDisposableDependencies();
+                throw;
+            }
+        }
+
         internal Repository(WorktreeHandle worktreeHandle)
         {
             try
@@ -818,6 +865,35 @@ namespace LibGit2Sharp
 
                 return clonedRepoPath;
             }
+        }
+
+        /// <summary>
+        /// Creates a virtual (bare) repository which views the contents of a packfile.
+        /// </summary>
+        /// <param name="packFileIndex">Pack file index (.idx file.)</param>
+        /// <returns>Virtual repository.</returns>
+        public static Repository OpenFromPackFile(string packFileIndex)
+        {
+            ObjectDatabaseHandle odbHandle = null;
+            IntPtr odbBackend = IntPtr.Zero;
+
+            try
+            {
+                odbHandle = Proxy.git_odb_new();
+                odbBackend = Proxy.git_odb_backend_one_pack(packFileIndex);
+                Proxy.git_odb_add_backend(odbHandle, odbBackend, 1);
+            }
+            catch
+            {
+                // Once the backend is attached to the ODB, freeing the ODB will free the backend.
+                // But if git_odb_add_backend() fails, it'll leak. We could try to fire the free() callback,
+                // but it would take some work.
+                odbHandle?.Dispose();
+                throw;
+            }
+
+            var repoHandle = Proxy.git_repository_wrap_odb(odbHandle);
+            return new Repository(repoHandle);
         }
 
         /// <summary>
