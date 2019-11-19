@@ -126,6 +126,13 @@ namespace LibGit2Sharp
                     string.Format("Operation {0} is not suppoted by this backend.", operationName));
             }
 
+            public static ConfigBackendException NotFound(string key)
+            {
+                return new ConfigBackendException(
+                    GitErrorCode.NotFound,
+                    string.Format("Key {0} was not found.", key));
+            }
+
             internal static int GetReturnCode(Exception ex)
             {
                 Proxy.git_error_set_str(GitErrorCategory.Config, ex);
@@ -287,6 +294,10 @@ namespace LibGit2Sharp
                 try
                 {
                     value = backend.Get(key);
+                    if (value == null)
+                    {
+                        return (int)GitErrorCode.NotFound;
+                    }
                 }
                 catch (Exception ex)
                 {

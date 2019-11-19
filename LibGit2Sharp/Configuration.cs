@@ -847,5 +847,10 @@ namespace LibGit2Sharp
                 Proxy.git_transaction_free(txn);
             }
         }
+
+        public void AddBackend(ConfigBackend backend, ConfigurationLevel level, bool force)
+        {
+            Proxy.git_config_add_backend(configHandle, backend.BackendPointer, (uint)level, force);
+        }
     }
 }
