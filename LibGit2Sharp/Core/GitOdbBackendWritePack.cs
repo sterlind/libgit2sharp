@@ -27,6 +27,7 @@ namespace LibGit2Sharp.Core
 
         public static int GCHandleOffset;
 
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate int append_callback(IntPtr writepack, IntPtr data, UIntPtr size, IntPtr stats);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]

@@ -251,6 +251,30 @@ namespace LibGit2Sharp.Tests
             Assert.Equal(1, nbOfDisposeCalls);
         }
 
+        [Fact]
+        public void CanFetchWithACustomBackend()
+        {
+            string url = "http://github.com/libgit2/TestGitRepository";
+            var scd = BuildSelfCleaningDirectory();
+            string localRepoPath = InitNewRepository();
+
+            using (var repo = new Repository(localRepoPath))
+            {
+                Remote remote = repo.Network.Remotes.Add("origin", url);
+                Assert.NotNull(remote);
+
+                var backend = new MockOdbBackend();
+                backend.WritePackRoot = scd.RootedDirectoryPath;
+                repo.ObjectDatabase.AddBackend(backend, 5);
+
+                // Perform the actual fetch.
+                Commands.Fetch(repo, "origin", new string[0], null, null);
+
+                // Make sure we actually got the commit:
+                Assert.NotNull(repo.Branches["origin/master"]);
+            }
+        }
+
         #region MockOdbBackend
 
         private class MockOdbBackend : OdbBackend, IDisposable
@@ -259,6 +283,8 @@ namespace LibGit2Sharp.Tests
             {
                 this.disposer = disposer;
             }
+
+            public string WritePackRoot { get; set; }
 
             public void Dispose()
             {
@@ -283,7 +309,8 @@ namespace LibGit2Sharp.Tests
                         OdbBackendOperations.Exists |
                         OdbBackendOperations.ExistsPrefix |
                         OdbBackendOperations.ForEach |
-                        OdbBackendOperations.ReadHeader;
+                        OdbBackendOperations.ReadHeader |
+                        OdbBackendOperations.WritePack;
                 }
             }
 
@@ -467,6 +494,46 @@ namespace LibGit2Sharp.Tests
                 }
 
                 return (int)ReturnCode.GIT_OK;
+            }
+
+            public override int WritePack(out OdbBackendWritePack writePack)
+            {
+                writePack = new MockOdbBackendWritePack(this, WritePackRoot);
+                return (int)ReturnCode.GIT_OK;
+            }
+
+            #endregion
+
+            #region
+
+            private class MockOdbBackendWritePack : OdbBackendWritePack
+            {
+                public MockOdbBackendWritePack(OdbBackend backend, string path)
+                    : base(backend, path, 0)
+                {
+                }
+
+                protected override int Commit(ObjectId indexerHash)
+                {
+                    var indexPath = Path.Combine(PackPath, string.Format("pack-{0}.idx", indexerHash.Sha));
+                    using (var repo = Repository.OpenFromPackFile(indexPath))
+                    {
+                        foreach (var packObj in repo.ObjectDatabase)
+                        {
+                            var metadata = repo.ObjectDatabase.RetrieveObjectMetadata(packObj.Id);
+                            using (var ms = new MemoryStream(repo.ObjectDatabase.Read(packObj.Id)))
+                            {
+                                var result = this.Backend.Write(packObj.Id, ms, metadata.Size, metadata.Type);
+                                if (result < 0)
+                                {
+                                    return result;
+                                }
+                            }
+                        }
+                    }
+
+                    return 0;
+                }
             }
 
             #endregion

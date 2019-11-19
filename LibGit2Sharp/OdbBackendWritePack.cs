@@ -2,6 +2,7 @@
 using LibGit2Sharp.Core.Handles;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -9,33 +10,33 @@ namespace LibGit2Sharp
 {
     public abstract class OdbBackendWritePack : IDisposable
     {
-        private readonly string path;
-        private readonly uint mode;
         private IndexerHandle indexerHandle;
         private IntPtr nativePointer;
 
-        protected OdbBackendWritePack(OdbBackend backend, string path, uint mode)
+        protected OdbBackendWritePack(OdbBackend backend, string packPath, uint mode)
         {
             this.Backend = backend;
-            this.Path = path;
+            this.PackPath = packPath;
             this.Mode = mode;
         }
 
 
         protected OdbBackend Backend { get; private set; }
 
-        protected string Path { get; private set; }
+        protected string PackPath { get; private set; }
 
         protected uint Mode { get; private set; }
 
-        protected abstract void Commit(ObjectId indexerHash);
+        protected abstract int Commit(ObjectId indexerHash);
 
         internal IntPtr Initialize(ObjectDatabaseHandle odbHandle)
         {
-            indexerHandle = Proxy.git_indexer_new(path, Mode, odbHandle);
+            Directory.CreateDirectory(PackPath);
+            indexerHandle = Proxy.git_indexer_new(PackPath, Mode, odbHandle);
 
             var nativeWritePack = new GitOdbBackendWritePack()
             {
+                Backend = Backend.GitOdbBackendPointer,
                 Append = BackendWritePackEntryPoints.AppendCallback,
                 Commit = BackendWritePackEntryPoints.CommitCallback,
                 Free = BackendWritePackEntryPoints.FreeCallback
@@ -99,7 +100,11 @@ namespace LibGit2Sharp
                 var hashId = Proxy.git_indexer_hash(writePack.indexerHandle);
                 try
                 {
-                    writePack.Commit(hashId);
+                    var result = writePack.Commit(hashId);
+                    if (result < 0)
+                    {
+                        return result;
+                    }
                 }
                 catch (Exception ex)
                 {
