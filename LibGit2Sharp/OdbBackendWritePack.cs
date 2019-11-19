@@ -7,19 +7,20 @@ using System.Text;
 
 namespace LibGit2Sharp
 {
-    internal class OdbBackendWritePack : IDisposable
+    public abstract class OdbBackendWritePack : IDisposable
     {
-        private readonly OdbBackend backend;
-        private readonly IndexerHandle indexerHandle;
         private IntPtr nativePointer;
 
-        public OdbBackendWritePack(OdbBackend backend, IndexerHandle indexerHandle)
+        protected OdbBackendWritePack(OdbBackend backend)
         {
-            this.backend = backend;
-            this.indexerHandle = indexerHandle;
+            this.Backend = backend;
         }
 
-        public IntPtr BackendWritePackPointer
+        internal OdbBackend Backend { get; private set; }
+
+        internal IndexerHandle IndexerHandle { get; set; }
+
+        internal IntPtr BackendWritePackPointer
         {
             get
             {
@@ -41,8 +42,14 @@ namespace LibGit2Sharp
             }
         }
 
-        public void Dispose()
+        public virtual void Dispose()
         {
+            if (IndexerHandle != null)
+            {
+                IndexerHandle.Dispose();
+                IndexerHandle = null;
+            }
+
             if (nativePointer != IntPtr.Zero)
             {
                 GCHandle.FromIntPtr(Marshal.ReadIntPtr(nativePointer, GitOdbBackendWritePack.GCHandleOffset)).Free();
@@ -69,7 +76,7 @@ namespace LibGit2Sharp
                     return (int)GitErrorCode.Error;
                 }
 
-                Proxy.git_indexer_append(writePack.indexerHandle, data, size, stats);
+                Proxy.git_indexer_append(writePack.IndexerHandle, data, size, stats);
 
                 return (int)GitErrorCode.Ok;
             }
@@ -84,8 +91,7 @@ namespace LibGit2Sharp
                     return (int)GitErrorCode.Error;
                 }
 
-                Proxy.git_indexer_commit(writePack.indexerHandle, stats);
-                writePack.backend.WritePack()
+                Proxy.git_indexer_commit(writePack.IndexerHandle, stats);
                 return (int)GitErrorCode.Ok;
             }
 

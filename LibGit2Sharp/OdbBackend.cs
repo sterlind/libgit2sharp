@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Globalization;
 using System.IO;
+using System.Linq.Expressions;
 using System.Runtime.InteropServices;
 using LibGit2Sharp.Core;
+using LibGit2Sharp.Core.Handles;
 
 namespace LibGit2Sharp
 {
@@ -135,6 +137,10 @@ namespace LibGit2Sharp
         /// Requests that this backend enumerate all items in the backing store.
         /// </summary>
         public abstract int ForEach(ForEachCallback callback);
+
+        public abstract int StartWritePack(out string path, out uint mode);
+
+        public abstract void FinishWritePack(string indexFilePath);
 
         /// <summary>
         /// The signature of the callback method provided to the Foreach method.
@@ -618,16 +624,46 @@ namespace LibGit2Sharp
                 IntPtr progressCb,
                 IntPtr progressPayload)
             {
-                writePack = null;
+                writePack = IntPtr.Zero;
                 OdbBackend odbBackend = MarshalOdbBackend(backend);
                 if (odbBackend == null)
                 {
                     return (int)GitErrorCode.Error;
                 }
-            }
 
-            private static int WritePackAppend(
-                IntPtr )
+                string path;
+                uint mode;
+                try
+                {
+                    var result = odbBackend.StartWritePack(out path, out mode);
+                    if (result != (int)GitErrorCode.Ok)
+                    {
+                        return result;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Proxy.git_error_set_str(GitErrorCategory.Odb, ex);
+                    return (int)GitErrorCode.Error;
+                }
+
+                using (var odbHandle = new ObjectDatabaseHandle(odb, false))
+                {
+                    var indexerHandle = Proxy.git_indexer_new(path, mode, odbHandle);
+                    try
+                    {
+                        var odbWritePack = new OdbBackendWritePack(odbBackend, indexerHandle);
+                        writePack = odbWritePack.BackendWritePackPointer;
+                    }
+                    catch
+                    {
+                        indexerHandle.Dispose();
+                        throw;
+                    }
+                }
+
+                return (int)GitErrorCode.Ok;
+            }
 
             private class ForeachState
             {
