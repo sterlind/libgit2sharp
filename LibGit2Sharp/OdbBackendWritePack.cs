@@ -9,45 +9,49 @@ namespace LibGit2Sharp
 {
     public abstract class OdbBackendWritePack : IDisposable
     {
+        private readonly string path;
+        private readonly uint mode;
+        private IndexerHandle indexerHandle;
         private IntPtr nativePointer;
 
-        protected OdbBackendWritePack(OdbBackend backend)
+        protected OdbBackendWritePack(OdbBackend backend, string path, uint mode)
         {
             this.Backend = backend;
+            this.Path = path;
+            this.Mode = mode;
         }
 
-        internal OdbBackend Backend { get; private set; }
 
-        internal IndexerHandle IndexerHandle { get; set; }
+        protected OdbBackend Backend { get; private set; }
 
-        internal IntPtr BackendWritePackPointer
+        protected string Path { get; private set; }
+
+        protected uint Mode { get; private set; }
+
+        protected abstract void Commit(ObjectId indexerHash);
+
+        internal IntPtr Initialize(ObjectDatabaseHandle odbHandle)
         {
-            get
+            indexerHandle = Proxy.git_indexer_new(path, Mode, odbHandle);
+
+            var nativeWritePack = new GitOdbBackendWritePack()
             {
-                if (nativePointer == IntPtr.Zero)
-                {
-                    var nativeWritePack = new GitOdbBackendWritePack()
-                    {
-                        Append = BackendWritePackEntryPoints.AppendCallback,
-                        Commit = BackendWritePackEntryPoints.CommitCallback,
-                        Free = BackendWritePackEntryPoints.FreeCallback
-                    };
+                Append = BackendWritePackEntryPoints.AppendCallback,
+                Commit = BackendWritePackEntryPoints.CommitCallback,
+                Free = BackendWritePackEntryPoints.FreeCallback
+            };
 
-                    nativeWritePack.GCHandle = GCHandle.ToIntPtr(GCHandle.Alloc(this));
-                    nativePointer = Marshal.AllocHGlobal(Marshal.SizeOf(nativeWritePack));
-                    Marshal.StructureToPtr(nativeWritePack, nativePointer, false);
-                }
-
-                return nativePointer;
-            }
+            nativeWritePack.GCHandle = GCHandle.ToIntPtr(GCHandle.Alloc(this));
+            nativePointer = Marshal.AllocHGlobal(Marshal.SizeOf(nativeWritePack));
+            Marshal.StructureToPtr(nativeWritePack, nativePointer, false);
+            return nativePointer;
         }
 
         public virtual void Dispose()
         {
-            if (IndexerHandle != null)
+            if (indexerHandle != null)
             {
-                IndexerHandle.Dispose();
-                IndexerHandle = null;
+                indexerHandle.Dispose();
             }
 
             if (nativePointer != IntPtr.Zero)
@@ -76,7 +80,7 @@ namespace LibGit2Sharp
                     return (int)GitErrorCode.Error;
                 }
 
-                Proxy.git_indexer_append(writePack.IndexerHandle, data, size, stats);
+                Proxy.git_indexer_append(writePack.indexerHandle, data, size, stats);
 
                 return (int)GitErrorCode.Ok;
             }
@@ -91,7 +95,18 @@ namespace LibGit2Sharp
                     return (int)GitErrorCode.Error;
                 }
 
-                Proxy.git_indexer_commit(writePack.IndexerHandle, stats);
+                Proxy.git_indexer_commit(writePack.indexerHandle, stats);
+                var hashId = Proxy.git_indexer_hash(writePack.indexerHandle);
+                try
+                {
+                    writePack.Commit(hashId);
+                }
+                catch (Exception ex)
+                {
+                    Proxy.git_error_set_str(GitErrorCategory.Odb, ex);
+                    return (int)GitErrorCode.Error;
+                }
+
                 return (int)GitErrorCode.Ok;
             }
 

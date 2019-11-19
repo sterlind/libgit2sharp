@@ -138,9 +138,13 @@ namespace LibGit2Sharp
         /// </summary>
         public abstract int ForEach(ForEachCallback callback);
 
-        public abstract int StartWritePack(out string path, out uint mode);
-
-        public abstract void FinishWritePack(string indexFilePath);
+        /// <summary>
+        /// Requests that this backend start a writepack session.
+        /// </summary>
+        public virtual int WritePack(out OdbBackendWritePack writePack)
+        {
+            throw new NotImplementedException();
+        }
 
         /// <summary>
         /// The signature of the callback method provided to the Foreach method.
@@ -631,11 +635,10 @@ namespace LibGit2Sharp
                     return (int)GitErrorCode.Error;
                 }
 
-                string path;
-                uint mode;
+                OdbBackendWritePack writePackBackend;
                 try
                 {
-                    var result = odbBackend.StartWritePack(out path, out mode);
+                    var result = odbBackend.WritePack(out writePackBackend);
                     if (result != (int)GitErrorCode.Ok)
                     {
                         return result;
@@ -649,17 +652,7 @@ namespace LibGit2Sharp
 
                 using (var odbHandle = new ObjectDatabaseHandle(odb, false))
                 {
-                    var indexerHandle = Proxy.git_indexer_new(path, mode, odbHandle);
-                    try
-                    {
-                        var odbWritePack = new OdbBackendWritePack(odbBackend, indexerHandle);
-                        writePack = odbWritePack.BackendWritePackPointer;
-                    }
-                    catch
-                    {
-                        indexerHandle.Dispose();
-                        throw;
-                    }
+                    writePack = writePackBackend.Initialize(odbHandle);
                 }
 
                 return (int)GitErrorCode.Ok;
