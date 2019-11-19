@@ -93,11 +93,12 @@ namespace LibGit2Sharp
         {
         }
 
-        internal Repository(RepositoryHandle handle)
+        internal Repository(ObjectDatabaseHandle odbHandle)
         {
             try
             {
-                this.handle = handle;
+                handle = Proxy.git_repository_wrap_odb(odbHandle);
+                RegisterForCleanup(odbHandle);
                 RegisterForCleanup(handle);
                 isBare = Proxy.git_repository_is_bare(handle);
 
@@ -892,8 +893,7 @@ namespace LibGit2Sharp
                 throw;
             }
 
-            var repoHandle = Proxy.git_repository_wrap_odb(odbHandle);
-            return new Repository(repoHandle);
+            return new Repository(odbHandle);
         }
 
         /// <summary>
