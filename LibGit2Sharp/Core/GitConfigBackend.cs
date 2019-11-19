@@ -25,10 +25,40 @@ namespace LibGit2Sharp.Core
         public static int GCHandleOffset;
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        public delegate int next_callback(out GitConfigEntry entry, IntPtr iterator);
+        public delegate int next_callback(out IntPtr entry, IntPtr iterator);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate void free_callback(IntPtr iterator);
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct GitConfigBackendEntry
+    {
+        static GitConfigBackendEntry()
+        {
+            GCHandleOffset = Marshal.OffsetOf<GitConfigBackendEntry>(nameof(GCHandle)).ToInt32();
+        }
+
+        [MarshalAs(UnmanagedType.CustomMarshaler, MarshalCookie = UniqueId.UniqueIdentifier, MarshalTypeRef = typeof(LaxUtf8NoCleanupMarshaler))]
+        public string Name;
+
+        [MarshalAs(UnmanagedType.CustomMarshaler, MarshalCookie = UniqueId.UniqueIdentifier, MarshalTypeRef = typeof(LaxUtf8NoCleanupMarshaler))]
+        public string Value;
+
+        public uint IncludeDepth;
+        public uint Level;
+        public free_callback Free;
+
+        /* The libgit2 structure definition includes the GCHandle, since it ends with an opaque pointer. */
+
+        public IntPtr GCHandle;
+
+        /* The following static fields are not part of the structure definition. */
+
+        public static int GCHandleOffset;
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate void free_callback(IntPtr entry);
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -47,6 +77,12 @@ namespace LibGit2Sharp.Core
         [MarshalAs(UnmanagedType.Bool)]
         public bool ReadOnly;
 
+        /// <summary>
+        /// This field is populated by libgit2 at backend addition time, and exists for its
+        /// use only. From this side of the interop, it is unreferenced.
+        /// </summary>
+        public IntPtr Cfg;
+
         public open_callback Open;
         public get_callback Get;
         public set_callback Set;
@@ -57,12 +93,6 @@ namespace LibGit2Sharp.Core
         public lock_callback Lock;
         public unlock_callback Unlock;
         public free_callback Free;
-
-        /// <summary>
-        /// This field is populated by libgit2 at backend addition time, and exists for its
-        /// use only. From this side of the interop, it is unreferenced.
-        /// </summary>
-        public IntPtr Cfg;
 
         /* The libgit2 structure definition ends here. Subsequent fields are for libgit2sharp bookkeeping. */
 
@@ -82,7 +112,7 @@ namespace LibGit2Sharp.Core
         public delegate int get_callback(
             IntPtr backend,
             [MarshalAs(UnmanagedType.CustomMarshaler, MarshalCookie = UniqueId.UniqueIdentifier, MarshalTypeRef = typeof(LaxUtf8NoCleanupMarshaler))] string key,
-            out GitConfigEntry value);
+            out IntPtr value);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate int set_callback(
