@@ -509,7 +509,7 @@ namespace LibGit2Sharp.Tests
             private class MockOdbBackendWritePack : OdbBackendWritePack
             {
                 public MockOdbBackendWritePack(OdbBackend backend, string path)
-                    : base(backend, path, 0)
+                    : base(backend, path)
                 {
                 }
 

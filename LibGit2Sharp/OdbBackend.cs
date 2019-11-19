@@ -140,6 +140,7 @@ namespace LibGit2Sharp
 
         /// <summary>
         /// Requests that this backend start a writepack session.
+        /// If you declare <see cref="OdbBackendOperations.WritePack"/> you must override this method.
         /// </summary>
         public virtual int WritePack(out OdbBackendWritePack writePack)
         {
