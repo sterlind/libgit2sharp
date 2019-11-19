@@ -666,14 +666,13 @@ namespace LibGit2Sharp.Core
             ConfigurationHandle cfgHandle,
             IntPtr backend,
             uint level,
-            RepositoryHandle repoHandle,
             bool force)
         {
             Ensure.ZeroResult(NativeMethods.git_config_add_backend(
                 cfgHandle,
                 (git_config_backend*)backend,
                 level,
-                repoHandle,
+                null,
                 force));
         }
 
