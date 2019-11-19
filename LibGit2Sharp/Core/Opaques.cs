@@ -11,6 +11,7 @@ namespace LibGit2Sharp.Core
     internal struct git_diff {}
     internal struct git_patch {}
     internal struct git_config {}
+    internal struct git_config_backend {}
     internal struct git_index_conflict_iterator {}
     internal struct git_index {}
     internal struct git_indexer {}

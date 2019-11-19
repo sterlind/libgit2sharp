@@ -663,6 +663,21 @@ namespace LibGit2Sharp.Core
             return txn;
         }
 
+        public static unsafe void git_config_add_backend(
+            ConfigurationHandle cfgHandle,
+            IntPtr backend,
+            uint level,
+            RepositoryHandle repoHandle,
+            bool force)
+        {
+            Ensure.ZeroResult(NativeMethods.git_config_add_backend(
+                cfgHandle,
+                (git_config_backend*)backend,
+                level,
+                repoHandle,
+                force));
+        }
+
         #endregion
 
         #region git_cred_
