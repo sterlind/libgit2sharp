@@ -621,4 +621,26 @@ namespace LibGit2Sharp.Core.Handles
         }
     }
 
+    internal unsafe class IndexerHandle : Libgit2Object
+    {
+        public IndexerHandle(void* handle, bool owned)
+            : base(handle, owned)
+        {
+        }
+
+        public IndexerHandle(IntPtr ptr, bool owned)
+            : base(ptr, owned)
+        {
+        }
+
+        public override void Free()
+        {
+            NativeMethods.git_indexer_free((git_indexer*)ptr);
+        }
+
+        public static implicit operator git_indexer*(IndexerHandle handle)
+        {
+            return (git_indexer*)handle.Handle;
+        }
+    }
 }

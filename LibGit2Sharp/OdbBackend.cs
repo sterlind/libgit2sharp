@@ -204,6 +204,11 @@ namespace LibGit2Sharp
                         nativeBackend.Foreach = BackendEntryPoints.ForEachCallback;
                     }
 
+                    if ((supportedOperations & OdbBackendOperations.WritePack) != 0)
+                    {
+                        nativeBackend.Writepack = BackendEntryPoints.WritePackCallback;
+                    }
+
                     nativeBackend.GCHandle = GCHandle.ToIntPtr(GCHandle.Alloc(this));
                     nativeBackendPointer = Marshal.AllocHGlobal(Marshal.SizeOf(nativeBackend));
                     Marshal.StructureToPtr(nativeBackend, nativeBackendPointer, false);
@@ -229,6 +234,7 @@ namespace LibGit2Sharp
             public static readonly GitOdbBackend.exists_prefix_callback ExistsPrefixCallback = ExistsPrefix;
             public static readonly GitOdbBackend.foreach_callback ForEachCallback = Foreach;
             public static readonly GitOdbBackend.free_callback FreeCallback = Free;
+            public static readonly GitOdbBackend.writepack_callback WritePackCallback = WritePack;
 
             private static OdbBackend MarshalOdbBackend(IntPtr backendPtr)
             {
@@ -605,6 +611,24 @@ namespace LibGit2Sharp
                 }
             }
 
+            private static int WritePack(
+                out IntPtr writePack,
+                IntPtr backend,
+                IntPtr odb,
+                IntPtr progressCb,
+                IntPtr progressPayload)
+            {
+                writePack = null;
+                OdbBackend odbBackend = MarshalOdbBackend(backend);
+                if (odbBackend == null)
+                {
+                    return (int)GitErrorCode.Error;
+                }
+            }
+
+            private static int WritePackAppend(
+                IntPtr )
+
             private class ForeachState
             {
                 public ForeachState(GitOdbBackend.foreach_callback_callback cb, IntPtr data)
@@ -694,6 +718,11 @@ namespace LibGit2Sharp
             /// This OdbBackend declares that it supports the Foreach method.
             /// </summary>
             ForEach = 256,
+
+            /// <summary>
+            /// This OdbBackend declares that it supports the Writepack method.
+            /// </summary>
+            WritePack = 512
         }
 
         /// <summary>

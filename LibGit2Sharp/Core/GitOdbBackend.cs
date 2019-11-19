@@ -33,7 +33,7 @@ namespace LibGit2Sharp.Core
         public exists_prefix_callback ExistsPrefix;
         public IntPtr Refresh;
         public foreach_callback Foreach;
-        public IntPtr Writepack;
+        public writepack_callback Writepack;
         public IntPtr Freshen;
         public free_callback Free;
 
@@ -214,5 +214,22 @@ namespace LibGit2Sharp.Core
         public delegate int foreach_callback_callback(
             IntPtr oid,
             IntPtr data);
+
+        /// <summary>
+        /// A callback for the backend's implementation of writepack.
+        /// </summary>
+        /// <param name="writepack">Writepack object to return.</param>
+        /// <param name="backend">Backend instance.</param>
+        /// <param name="odb">Odb instance that the backend attaches to.</param>
+        /// <param name="progressCb">Progress callback.</param>
+        /// <param name="progressPayload">Payload passed to the progress callback.</param>
+        /// <returns></returns>
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate int writepack_callback(
+            out IntPtr writepack,
+            IntPtr backend,
+            IntPtr odb,
+            IntPtr progressCb,
+            IntPtr progressPayload);
     }
 }

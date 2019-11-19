@@ -1199,6 +1199,32 @@ namespace LibGit2Sharp.Core
 
         #endregion
 
+        #region git_indexer_
+
+        public static unsafe IndexerHandle git_indexer_new(string path, uint mode, ObjectDatabaseHandle handle)
+        {
+            git_indexer* indexer;
+            Ensure.ZeroResult(NativeMethods.git_indexer_new(out indexer, path, mode, handle, null));
+            return new IndexerHandle(indexer, true);
+        }
+
+        public static unsafe void git_indexer_append(IndexerHandle indexerHandle, IntPtr data, UIntPtr len, IntPtr stats)
+        {
+            Ensure.ZeroResult(NativeMethods.git_indexer_append(indexerHandle, (byte*)data, len, stats));
+        }
+
+        public static unsafe void git_indexer_commit(IndexerHandle indexerHandle, IntPtr stats)
+        {
+            Ensure.ZeroResult(NativeMethods.git_indexer_commit(indexerHandle, stats));
+        }
+
+        public static unsafe ObjectId git_indexer_hash(IndexerHandle indexerHandle)
+        {
+            return ObjectId.BuildFromPtr(NativeMethods.git_indexer_hash(indexerHandle));
+        }
+
+        #endregion
+
         #region git_merge_
 
         public static unsafe IndexHandle git_merge_commits(RepositoryHandle repo, ObjectHandle ourCommit, ObjectHandle theirCommit, GitMergeOpts opts, out bool earlyStop)

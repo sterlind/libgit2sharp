@@ -918,6 +918,32 @@ namespace LibGit2Sharp.Core
         internal static extern unsafe int git_index_clear(git_index* index);
 
         [DllImport(libgit2, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern unsafe int git_indexer_new(
+            out git_indexer* indexer,
+            [MarshalAs(UnmanagedType.CustomMarshaler, MarshalCookie = UniqueId.UniqueIdentifier, MarshalTypeRef = typeof(StrictUtf8Marshaler))] string path,
+            uint mode,
+            git_odb* odb,
+            git_indexer_options* options);
+
+        [DllImport(libgit2, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern unsafe int git_indexer_append(
+            git_indexer* indexer,
+            byte* data,
+            UIntPtr size,
+            IntPtr stats);
+
+        [DllImport(libgit2, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern unsafe int git_indexer_commit(
+            git_indexer* indexer,
+            IntPtr stats);
+
+        [DllImport(libgit2, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern unsafe git_oid* git_indexer_hash(git_indexer* indexer);
+
+        [DllImport(libgit2, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern unsafe void git_indexer_free(git_indexer* indexer);
+
+        [DllImport(libgit2, CallingConvention = CallingConvention.Cdecl)]
         internal static extern unsafe int git_merge_base_many(
             out GitOid mergeBase,
             git_repository* repo,
