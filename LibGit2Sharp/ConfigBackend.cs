@@ -65,10 +65,12 @@ namespace LibGit2Sharp
         private readonly bool isReadOnly;
         private IntPtr nativePointer;
         private uint level;
+        private bool isOpen;
 
         internal ConfigBackend(bool isReadOnly)
         {
             this.isReadOnly = isReadOnly;
+            this.isOpen = false;
         }
 
         internal IntPtr BackendPointer
@@ -123,6 +125,7 @@ namespace LibGit2Sharp
 
         public virtual void Dispose()
         {
+            isOpen = false;
             if (nativePointer != IntPtr.Zero)
             {
                 GCHandle.FromIntPtr(Marshal.ReadIntPtr(nativePointer, GitConfigBackend.GCHandleOffset)).Free();
@@ -133,6 +136,12 @@ namespace LibGit2Sharp
 
         internal void Open(uint level)
         {
+            if (isOpen)
+            {
+                throw new InvalidOperationException("Backend is already open!");
+            }
+
+            isOpen = true;
             this.level = level;
         }
 
@@ -330,7 +339,15 @@ namespace LibGit2Sharp
                     return (int)GitErrorCode.Error;
                 }
 
-                backend.Open(level);
+                try
+                {
+                    backend.Open(level);
+                }
+                catch (Exception ex)
+                {
+                    return ConfigBackendException.GetReturnCode(ex);
+                }
+
                 return (int)GitErrorCode.Ok;
             }
 
