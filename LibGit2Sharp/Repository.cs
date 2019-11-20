@@ -60,6 +60,15 @@ namespace LibGit2Sharp
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Repository"/> class.
+        /// </summary>
+        /// <param name="options">Overrides to the way a repository is opened</param>
+        public Repository(RepositoryOptions options)
+            : this(null, options, RepositoryRequiredParameter.Options)
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Repository"/> class.
         /// <para>For a standard repository, <paramref name="path"/> should either point to the ".git" folder or to the working directory. For a bare repository, <paramref name="path"/> should directly point to the repository folder.</para>
         /// </summary>
         /// <param name="path">
@@ -219,12 +228,14 @@ namespace LibGit2Sharp
 
                 Func<Index> indexBuilder = () => new Index(this);
 
+                bool noConfigFiles = false;
                 string configurationGlobalFilePath = null;
                 string configurationXDGFilePath = null;
                 string configurationSystemFilePath = null;
 
                 if (options != null)
                 {
+                    noConfigFiles = options.DoNotInitializeConfiguration;
                     bool isWorkDirNull = string.IsNullOrEmpty(options.WorkingDirectoryPath);
                     bool isIndexNull = string.IsNullOrEmpty(options.IndexPath);
 
@@ -265,11 +276,15 @@ namespace LibGit2Sharp
                 tags = new TagCollection(this);
                 stashes = new StashCollection(this);
                 info = new Lazy<RepositoryInformation>(() => new RepositoryInformation(this, isBare));
-                config = new Lazy<Configuration>(() => RegisterForCleanup(new Configuration(this,
-                                                                                            null,
-                                                                                            configurationGlobalFilePath,
-                                                                                            configurationXDGFilePath,
-                                                                                            configurationSystemFilePath)));
+                config = new Lazy<Configuration>(() => RegisterForCleanup(noConfigFiles
+                    ? new Configuration(this)
+                    : new Configuration(
+                        this,
+                        null,
+                        configurationGlobalFilePath,
+                        configurationXDGFilePath,
+                        configurationSystemFilePath)));
+
                 odb = new Lazy<ObjectDatabase>(() => new ObjectDatabase(this, path == null));
                 diff = new Diff(this);
                 notes = new NoteCollection(this);
