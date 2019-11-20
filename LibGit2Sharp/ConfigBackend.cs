@@ -87,6 +87,7 @@ namespace LibGit2Sharp
                         Set = BackendEntryPoints.SetCallback,
                         SetMultiVar = BackendEntryPoints.SetMultiVarCallback,
                         Del = BackendEntryPoints.DelCallback,
+                        DelMultiVar = BackendEntryPoints.DelMultiVarCallback,
                         Lock = BackendEntryPoints.LockCallback,
                         Unlock = BackendEntryPoints.UnlockCallback,
                         Free = BackendEntryPoints.FreeCallback,
@@ -137,17 +138,24 @@ namespace LibGit2Sharp
 
         internal IntPtr AllocateEntry(string name, string value)
         {
+            Ensure.ArgumentNotNull(name, "name");
+            Ensure.ArgumentNotNull(value, "value");
+
+            var namePtr = EncodingMarshaler.FromManaged(Encoding.UTF8, name);
+            var valuePtr = EncodingMarshaler.FromManaged(Encoding.UTF8, value);
             var nativeEntry = new GitConfigBackendEntry()
             {
-                Name = name,
-                Value = value,
+                Name = namePtr,
+                Value = valuePtr,
                 IncludeDepth = 0,
                 Level = level,
                 Free = BackendEntryPoints.FreeEntryCallback
             };
 
             nativeEntry.GCHandle = GCHandle.ToIntPtr(GCHandle.Alloc(nativeEntry));
-            return Marshal.AllocHGlobal(Marshal.SizeOf(nativeEntry));
+            var pointer = Marshal.AllocHGlobal(Marshal.SizeOf(nativeEntry));
+            Marshal.StructureToPtr(nativeEntry, pointer, false);
+            return pointer;
         }
 
         public sealed class ConfigBackendException : LibGit2SharpException
@@ -274,9 +282,13 @@ namespace LibGit2Sharp
                     }
                 }
 
-                private static void Free(IntPtr iterator)
+                private static void Free(IntPtr iteratorPtr)
                 {
-                    throw new NotImplementedException();
+                    var iterator = MarshalFromPtr(iteratorPtr);
+                    if (iterator != null)
+                    {
+                        iterator.Dispose();
+                    }
                 }
 
                 private static ConfigBackendIterator MarshalFromPtr(IntPtr backendPtr)
@@ -528,7 +540,12 @@ namespace LibGit2Sharp
             private static void FreeEntry(IntPtr entryPtr)
             {
                 var intPtr = Marshal.ReadIntPtr(entryPtr, GitConfigBackendEntry.GCHandleOffset);
-                GCHandle.FromIntPtr(intPtr).Free();
+                var handle = GCHandle.FromIntPtr(intPtr);
+                var entry = (GitConfigBackendEntry)(handle.Target);
+
+                EncodingMarshaler.Cleanup(entry.Name);
+                EncodingMarshaler.Cleanup(entry.Value);
+                handle.Free();
                 Marshal.FreeHGlobal(entryPtr);
             }
 
