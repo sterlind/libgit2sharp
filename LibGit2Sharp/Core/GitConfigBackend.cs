@@ -39,11 +39,9 @@ namespace LibGit2Sharp.Core
             GCHandleOffset = Marshal.OffsetOf<GitConfigBackendEntry>(nameof(GCHandle)).ToInt32();
         }
 
-        [MarshalAs(UnmanagedType.CustomMarshaler, MarshalCookie = UniqueId.UniqueIdentifier, MarshalTypeRef = typeof(LaxUtf8NoCleanupMarshaler))]
-        public string Name;
+        public IntPtr Name;
 
-        [MarshalAs(UnmanagedType.CustomMarshaler, MarshalCookie = UniqueId.UniqueIdentifier, MarshalTypeRef = typeof(LaxUtf8NoCleanupMarshaler))]
-        public string Value;
+        public IntPtr Value;
 
         public uint IncludeDepth;
         public uint Level;
@@ -88,6 +86,7 @@ namespace LibGit2Sharp.Core
         public set_callback Set;
         public set_multivar_callback SetMultiVar;
         public del_callback Del;
+        public del_multivar_callback DelMultiVar;
         public iterator_callback Iterator;
         public snapshot_callback Snapshot;
         public lock_callback Lock;

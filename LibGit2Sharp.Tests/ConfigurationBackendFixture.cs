@@ -22,6 +22,31 @@ namespace LibGit2Sharp.Tests
             }
         }
 
+        private class MockReadOnlyConfigBackend : ReadOnlyConfigBackend
+        {
+            private readonly IReadOnlyDictionary<string, string> entries;
+
+            public MockReadOnlyConfigBackend(IReadOnlyDictionary<string, string> entries)
+            {
+                this.entries = entries;
+            }
+
+            public override string Get(string key)
+            {
+                if (entries.TryGetValue(key, out var value))
+                {
+                    return value;
+                }
+
+                return null;
+            }
+
+            public override IEnumerable<string> Iterate()
+            {
+                return entries.Keys;
+            }
+        }
+
         private class MockConfigBackend : ReadWriteConfigBackend
         {
             public readonly Dictionary<string, string> Entries = new Dictionary<string, string>();
@@ -68,7 +93,7 @@ namespace LibGit2Sharp.Tests
 
             public override ReadOnlyConfigBackend Snapshot()
             {
-                return new ReadOnlyConfigBackend(Entries);
+                return new MockReadOnlyConfigBackend(Entries);
             }
 
             public override void Unlock(bool success)
