@@ -22,9 +22,19 @@ namespace LibGit2Sharp.Tests
             }
         }
 
-        private class MockConfigBackend : ConfigBackend
+        private class MockConfigBackend : ReadWriteConfigBackend
         {
             public readonly Dictionary<string, string> Entries = new Dictionary<string, string>();
+
+            public override void Del(string key)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override void DelMultiVar(string name, string regexp)
+            {
+                throw new NotImplementedException();
+            }
 
             public override string Get(string key)
             {
@@ -34,6 +44,36 @@ namespace LibGit2Sharp.Tests
                 }
 
                 return null;
+            }
+
+            public override IEnumerable<string> Iterate()
+            {
+                throw new NotImplementedException();
+            }
+
+            public override void Lock()
+            {
+                throw new NotImplementedException();
+            }
+
+            public override void Set(string key, string value)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override void SetMultiVar(string name, string regexp, string value)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override ReadOnlyConfigBackend Snapshot()
+            {
+                return new ReadOnlyConfigBackend(Entries);
+            }
+
+            public override void Unlock(bool success)
+            {
+                throw new NotImplementedException();
             }
         }
     }
