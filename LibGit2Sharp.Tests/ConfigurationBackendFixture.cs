@@ -85,7 +85,11 @@ namespace LibGit2Sharp.Tests
 
         private Repository Init(MockConfigBackend backend)
         {
-            var repo = new Repository(InitNewRepository(true));
+            var repo = new Repository(new RepositoryOptions()
+            {
+                DoNotInitializeConfiguration = true
+            });
+
             repo.Config.AddBackend(backend, ConfigurationLevel.System, true);
             return repo;
         }
@@ -152,7 +156,8 @@ namespace LibGit2Sharp.Tests
 
         private class MockConfigBackend : ReadWriteConfigBackend
         {
-            public readonly SortedDictionary<string, string> Entries = new SortedDictionary<string, string>();
+            private SortedDictionary<string, string> PreviousEntries = null;
+            public SortedDictionary<string, string> Entries = new SortedDictionary<string, string>();
 
             public override void Del(string key)
             {
@@ -184,7 +189,13 @@ namespace LibGit2Sharp.Tests
 
             public override void Lock()
             {
-                throw new NotImplementedException();
+                if (PreviousEntries != null)
+                {
+                    throw new InvalidOperationException("Already in a lock!");
+                }
+
+                PreviousEntries = Entries;
+                Entries = new SortedDictionary<string, string>(PreviousEntries);
             }
 
             public override void Set(string key, string value)
@@ -204,7 +215,20 @@ namespace LibGit2Sharp.Tests
 
             public override void Unlock(bool success)
             {
-                throw new NotImplementedException();
+                if (PreviousEntries == null)
+                {
+                    return;
+                }
+
+                if (success)
+                {
+                    PreviousEntries = null;
+                }
+                else
+                {
+                    Entries = PreviousEntries;
+                    PreviousEntries = null;
+                }
             }
         }
     }

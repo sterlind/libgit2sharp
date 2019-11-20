@@ -29,6 +29,12 @@ namespace LibGit2Sharp
         protected Configuration()
         { }
 
+        internal Configuration(Repository repository)
+        {
+            configHandle = Proxy.git_config_new();
+            Proxy.git_repository_set_config(repository.Handle, configHandle);
+        }
+
         internal Configuration(
             Repository repository,
             string repositoryConfigurationFileLocation,
@@ -844,10 +850,22 @@ namespace LibGit2Sharp
             }
             finally
             {
-                Proxy.git_transaction_free(txn);
+                if (txn != IntPtr.Zero)
+                {
+                    Proxy.git_transaction_free(txn);
+                }
             }
         }
 
+        /// <summary>
+        /// Adds a new backend to the configuration.
+        /// </summary>
+        /// <param name="backend">Backend to use.</param>
+        /// <param name="level">Priority level that the backend should be inserted as.</param>
+        /// <param name="force">
+        /// Remove any existing backend registered at this level. If false, an exception will be thrown
+        /// if a backend is already registered at this configuration level.
+        /// </param>
         public void AddBackend(ConfigBackend backend, ConfigurationLevel level, bool force)
         {
             Proxy.git_config_add_backend(configHandle, backend.BackendPointer, (uint)level, force);

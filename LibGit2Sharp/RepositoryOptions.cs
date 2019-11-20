@@ -37,5 +37,11 @@ namespace LibGit2Sharp
         /// </para>
         /// </summary>
         public Identity Identity { get; set; }
+
+        /// <summary>
+        /// Prevents any configuration files from being searched and loaded.
+        /// This is only suitable if you supply your own custom configuration backend.
+        /// </summary>
+        public bool DoNotInitializeConfiguration { get; set; }
     }
 }
