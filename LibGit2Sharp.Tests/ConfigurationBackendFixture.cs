@@ -54,8 +54,32 @@ namespace LibGit2Sharp.Tests
             backend.Entries["foo.baz"] = "quux";
             using (var repo = Init(backend))
             {
-                repo.Config.AddBackend(backend, ConfigurationLevel.System, true);
                 AssertConfigsMatch(backend.Entries, repo.Config);
+            }
+        }
+
+        [Fact]
+        public void LockUnlock()
+        {
+            var backend = new MockConfigBackend();
+            using (var repo = Init(backend))
+            {
+                // Set fails (and we roll back) because of an exception.
+                Assert.Throws<InvalidOperationException>(() => repo.Config.WithinTransaction(() =>
+                {
+                    SetValue(repo, "foo.bar", "abc");
+                    throw new InvalidOperationException();
+                }));
+
+                Assert.Null(GetValue(repo, "foo.bar"));
+
+                // Set succeeds (and we commit).
+                repo.Config.WithinTransaction(() =>
+                {
+                    SetValue(repo, "foo.bar", "abc");
+                });
+
+                Assert.Equal("abc", GetValue(repo, "foo.bar"));
             }
         }
 
