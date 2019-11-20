@@ -7,10 +7,69 @@ using System.Text;
 
 namespace LibGit2Sharp
 {
+    public abstract class ReadWriteConfigBackend : ConfigBackend
+    {
+        protected ReadWriteConfigBackend()
+            : base(false)
+        {
+        }
+    }
+
+    public abstract class ReadOnlyConfigBackend : ConfigBackend
+    {
+        protected ReadOnlyConfigBackend()
+            : base(true)
+        {
+        }
+
+        public sealed override void Set(string key, string value)
+        {
+            throw ConfigBackendException.NotImplemented("Set");
+        }
+
+        public sealed override void SetMultiVar(string name, string regexp, string value)
+        {
+            throw ConfigBackendException.NotImplemented("SetMultiVar");
+        }
+
+        public sealed override void Del(string key)
+        {
+            throw ConfigBackendException.NotImplemented("Del");
+        }
+
+        public sealed override void DelMultiVar(string name, string regexp)
+        {
+            throw ConfigBackendException.NotImplemented("DelMultiVar");
+        }
+
+        public sealed override void Lock()
+        {
+            throw ConfigBackendException.NotImplemented("Lock");
+        }
+
+        public sealed override void Unlock(bool success)
+        {
+            throw ConfigBackendException.NotImplemented("Unlock");
+        }
+
+        public sealed override ReadOnlyConfigBackend Snapshot()
+        {
+            // Note: this should never be called in the first place since the callback for snapshot
+            // is set to null when isReadOnly = true.
+            throw ConfigBackendException.NotImplemented("Snapshot");
+        }
+    }
+
     public abstract class ConfigBackend : IDisposable
     {
+        private readonly bool isReadOnly;
         private IntPtr nativePointer;
         private uint level;
+
+        internal ConfigBackend(bool isReadOnly)
+        {
+            this.isReadOnly = isReadOnly;
+        }
 
         internal IntPtr BackendPointer
         {
@@ -21,7 +80,7 @@ namespace LibGit2Sharp
                     var nativeBackend = new GitConfigBackend()
                     {
                         Version = 1,
-                        ReadOnly = false,
+                        ReadOnly = this.isReadOnly,
                         Open = BackendEntryPoints.OpenCallback,
                         Get = BackendEntryPoints.GetCallback,
                         Iterator = BackendEntryPoints.IteratorCallback,
@@ -30,7 +89,8 @@ namespace LibGit2Sharp
                         Del = BackendEntryPoints.DelCallback,
                         Lock = BackendEntryPoints.LockCallback,
                         Unlock = BackendEntryPoints.UnlockCallback,
-                        Free = BackendEntryPoints.FreeCallback
+                        Free = BackendEntryPoints.FreeCallback,
+                        Snapshot = isReadOnly ? null : BackendEntryPoints.SnapshotCallback
                     };
 
                     nativeBackend.GCHandle = GCHandle.ToIntPtr(GCHandle.Alloc(this));
@@ -44,40 +104,21 @@ namespace LibGit2Sharp
 
         public abstract string Get(string key);
 
-        public virtual IEnumerable<string> Iterate()
-        {
-            throw ConfigBackendException.NotImplemented("Iterator");
-        }
+        public abstract IEnumerable<string> Iterate();
 
-        public virtual void Set(string key, string value)
-        {
-            throw ConfigBackendException.NotImplemented("Set");
-        }
+        public abstract void Set(string key, string value);
 
-        public virtual void SetMultiVar(string name, string regexp, string value)
-        {
-            throw ConfigBackendException.NotImplemented("SetMultiVar");
-        }
+        public abstract void SetMultiVar(string name, string regexp, string value);
 
-        public virtual void Del(string key)
-        {
-            throw ConfigBackendException.NotImplemented("Del");
-        }
+        public abstract void Del(string key);
 
-        public virtual void DelMultiVar(string name, string regexp)
-        {
-            throw ConfigBackendException.NotImplemented("DelMultiVar");
-        }
+        public abstract void DelMultiVar(string name, string regexp);
 
-        public virtual void Lock()
-        {
-            throw ConfigBackendException.NotImplemented("Lock");
-        }
+        public abstract void Lock();
 
-        public virtual void Unlock(bool success)
-        {
-            throw ConfigBackendException.NotImplemented("Unlock");
-        }
+        public abstract void Unlock(bool success);
+
+        public abstract ReadOnlyConfigBackend Snapshot();
 
         public virtual void Dispose()
         {
@@ -414,7 +455,28 @@ namespace LibGit2Sharp
             private static int Snapshot(out IntPtr readonlyBackend, IntPtr backendPtr)
             {
                 readonlyBackend = IntPtr.Zero;
-                return (int)GitErrorCode.Error;
+                var backend = MarshalToBackend(backendPtr);
+                if (backend == null)
+                {
+                    return (int)GitErrorCode.Error;
+                }
+
+                ReadOnlyConfigBackend snapshotBackend = null;
+                try
+                {
+                    snapshotBackend = backend.Snapshot();
+                    readonlyBackend = snapshotBackend.BackendPointer;
+                    return (int)GitErrorCode.Ok;
+                }
+                catch (Exception ex)
+                {
+                    if (snapshotBackend != null)
+                    {
+                        snapshotBackend.Dispose();
+                    }
+
+                    return ConfigBackendException.GetReturnCode(ex);
+                }
             }
 
             private static int Lock(IntPtr backendPtr)
