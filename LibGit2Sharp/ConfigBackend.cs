@@ -293,7 +293,7 @@ namespace LibGit2Sharp
 
                 private static ConfigBackendIterator MarshalFromPtr(IntPtr backendPtr)
                 {
-                    var intPtr = Marshal.ReadIntPtr(backendPtr, GitConfigBackend.GCHandleOffset);
+                    var intPtr = Marshal.ReadIntPtr(backendPtr, GitConfigIterator.GCHandleOffset);
                     var iteratorBackend = GCHandle.FromIntPtr(intPtr).Target as ConfigBackendIterator;
 
                     if (iteratorBackend == null)
