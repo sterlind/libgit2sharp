@@ -536,9 +536,9 @@ namespace LibGit2Sharp
                 var nativeIterator = new GitRefdbIterator()
                 {
                     Refdb = backendPtr,
-                    Next = IteratorEntryPoints.Next,
-                    NextName = IteratorEntryPoints.NextName,
-                    Free = IteratorEntryPoints.Free,
+                    Next = IteratorEntryPoints.NextCallback,
+                    NextName = IteratorEntryPoints.NextNameCallback,
+                    Free = IteratorEntryPoints.FreeCallback,
                     GCHandle = GCHandle.ToIntPtr(GCHandle.Alloc(iterator))
                 };
 
