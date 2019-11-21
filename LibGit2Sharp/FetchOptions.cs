@@ -46,5 +46,13 @@
         /// </example>
         /// <value>The custom headers string array</value>
         public string[] CustomHeaders { get; set; }
+
+        /// <summary>
+        /// Gets/sets whether to update FETCH_HEAD after fetching a remote.
+        /// <para>
+        /// If not set, libgit2 will default to true, since this is the behavior of git.
+        /// </para>
+        /// </summary>
+        public bool? UpdateFetchHead { get; set; }
     }
 }

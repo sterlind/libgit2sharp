@@ -75,6 +75,11 @@ namespace LibGit2Sharp
                     fetchOptions.CustomHeaders = GitStrArrayManaged.BuildFrom(options.CustomHeaders);
                 }
 
+                if (options.UpdateFetchHead.HasValue)
+                {
+                    fetchOptions.UpdateFetchHead = options.UpdateFetchHead.Value;
+                }
+
                 fetchOptions.ProxyOptions = new GitProxyOptions { Version = 1 };
 
                 Proxy.git_remote_fetch(remoteHandle, refspecs, fetchOptions, logMessage);
