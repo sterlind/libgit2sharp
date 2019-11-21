@@ -51,6 +51,9 @@ namespace LibGit2Sharp.Core
 
         public IntPtr GCHandle;
 
+        /* The libgit2 structure definition does not include this, though: */
+        public IntPtr BackendGCHandle;
+
         /* The following static fields are not part of the structure definition. */
 
         public static int GCHandleOffset;

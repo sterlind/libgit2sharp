@@ -65,6 +65,7 @@ namespace LibGit2Sharp.Core
         {
             if (NonNegativeDecrement(ref refCount) == 0)
             {
+                // Once we hit zero, free for real.
                 Free();
             }
         }
@@ -83,11 +84,11 @@ namespace LibGit2Sharp.Core
         /// then the refcounter is eventually unchanged.
         /// </summary>
         /// <returns>True if the ref counter was incremented; otherwise, false if the pool is disposed.</returns>
-        private bool TryAcquire()
+        public bool TryAcquire()
         {
-            if (Interlocked.Increment(ref refCount) == 0)
+            if (Interlocked.Increment(ref refCount) == 1)
             {
-                // If the ref-counter was at zero, 
+                // If the ref-counter was at zero, release.
                 Release();
                 return false;
             }
@@ -105,18 +106,18 @@ namespace LibGit2Sharp.Core
                 EncodingMarshaler.Cleanup(value);
             }
 
-            managedToNative.Values.Clear();
+            managedToNative.Clear();
         }
 
         /// <summary>
         /// Performs an interlocked decrement, throwing an exception if the counter goes below zero.
         /// </summary>
         /// <param name="value">Counter to decrement.</param>
-        /// <returns>Previous value of the counter.</returns>
+        /// <returns>Resulting value of the counter, after decrement.</returns>
         private static long NonNegativeDecrement(ref long value)
         {
             var previous = Interlocked.Decrement(ref value);
-            if (previous <= 0)
+            if (previous < 0)
             {
                 try
                 {

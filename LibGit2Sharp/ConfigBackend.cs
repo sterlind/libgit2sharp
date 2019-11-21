@@ -73,6 +73,8 @@ namespace LibGit2Sharp
             this.isOpen = false;
         }
 
+        private RefCountedStringPool StringPool { get; set; }
+
         internal IntPtr BackendPointer
         {
             get
@@ -132,6 +134,12 @@ namespace LibGit2Sharp
                 Marshal.FreeHGlobal(nativePointer);
                 nativePointer = IntPtr.Zero;
             }
+
+            if (StringPool != null)
+            {
+                StringPool.Release();
+                StringPool = null;
+            }
         }
 
         internal void Open(uint level)
@@ -143,6 +151,19 @@ namespace LibGit2Sharp
 
             isOpen = true;
             this.level = level;
+
+            // If we don't already have a string pool, create one.
+            if (StringPool == null)
+            {
+                StringPool = new RefCountedStringPool();
+            }
+            else
+            {
+                if (!StringPool.TryAcquire())
+                {
+                    throw new ObjectDisposedException("ConfigBackend", "Parent backend was already disposed, can't open..");
+                }
+            }
         }
 
         internal IntPtr AllocateEntry(string name, string value)
@@ -150,17 +171,18 @@ namespace LibGit2Sharp
             Ensure.ArgumentNotNull(name, "name");
             Ensure.ArgumentNotNull(value, "value");
 
-            var namePtr = EncodingMarshaler.FromManaged(Encoding.UTF8, name);
-            var valuePtr = EncodingMarshaler.FromManaged(Encoding.UTF8, value);
+            var namePtr = StringPool.Get(name);
+            var valuePtr = StringPool.Get(value);
             var nativeEntry = new GitConfigBackendEntry()
             {
                 Name = namePtr,
                 Value = valuePtr,
                 IncludeDepth = 0,
                 Level = level,
-                Free = BackendEntryPoints.FreeEntryCallback
+                Free = BackendEntryPoints.FreeEntryCallback,
             };
 
+            nativeEntry.BackendGCHandle = GCHandle.ToIntPtr(GCHandle.Alloc(this));
             nativeEntry.GCHandle = GCHandle.ToIntPtr(GCHandle.Alloc(nativeEntry));
             var pointer = Marshal.AllocHGlobal(Marshal.SizeOf(nativeEntry));
             Marshal.StructureToPtr(nativeEntry, pointer, false);
@@ -494,6 +516,9 @@ namespace LibGit2Sharp
                 try
                 {
                     snapshotBackend = backend.Snapshot();
+
+                    // We share string pools with our parent.
+                    snapshotBackend.StringPool = backend.StringPool;
                     readonlyBackend = snapshotBackend.BackendPointer;
                     return (int)GitErrorCode.Ok;
                 }
@@ -559,10 +584,15 @@ namespace LibGit2Sharp
                 var intPtr = Marshal.ReadIntPtr(entryPtr, GitConfigBackendEntry.GCHandleOffset);
                 var handle = GCHandle.FromIntPtr(intPtr);
                 var entry = (GitConfigBackendEntry)(handle.Target);
+                var backendHandle = GCHandle.FromIntPtr(entry.BackendGCHandle);
+                var backend = (ConfigBackend)backendHandle.Target;
 
-                EncodingMarshaler.Cleanup(entry.Name);
-                EncodingMarshaler.Cleanup(entry.Value);
+                // Release twice, once for name and once for value.
+                backend.StringPool.Release();
+                backend.StringPool.Release();
+
                 handle.Free();
+                backendHandle.Free();
                 Marshal.FreeHGlobal(entryPtr);
             }
 
